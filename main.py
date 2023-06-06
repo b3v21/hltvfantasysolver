@@ -42,6 +42,8 @@ from data import Players, Boosters, Roles, Games, WP, Rating, Price
 # * Each role can only be assigned once
 # * Each player can only have 1 role
 
+players = []
+
 # Play around with these
 RAT = 0.2
 R1W = 0.8
@@ -55,25 +57,47 @@ R = range(len(Roles[0]))
 m = Model("HLTV FANTASY")
 
 # Variables
+# 1 if player p is selected
+# 0 otherwise
 X = {p: m.addVar(vtype=GRB.BINARY) for p in P}
+
+# 1 if player p is in role r
+# 0 otherwise
 Y = {(p, r): m.addVar(vtype=GRB.BINARY) for p in P for r in R}
+
+# 1 if player p uses booster b for game g
+# 0 otherwise
 Z = {(p, b, g): m.addVar(vtype=GRB.BINARY) for p in P for b in B for g in G}
+
+# probability that player p is still in the tournament for game g (in range (0,1))
+W = {(p, g): m.addVar(lb=0, ub=1, vtype=GRB.SEMICONT) for p in P for g in G}
 
 # Objective Function
 m.setObjective(
-    quicksum(X[p] * (((R1W * Rating[p][0]) + (RAT * Rating[p][1])) - 1) * 50 for p in P)
-    * len(Games)
-    + quicksum(Z[p, b, g] * Boosters[p][b][1] * 5 for p in P for g in G for b in B)
+    quicksum(
+        X[p] * W[p, g] * (((R1W * Rating[p][0]) + (RAT * Rating[p][1])) - 1) * 50
+        for p in P
+        for g in G
+    )
+    + quicksum(
+        Z[p, b, g] * W[p, g] * Boosters[p][b][1] * 5 for p in P for g in G for b in B
+    )
     + (
-        quicksum(Y[p, r] * Roles[p][r][1] * 2 for p in P for r in R)
-        + quicksum(Y[p, r] * Roles[p][r][2] * 5 for p in P for r in R)
+        quicksum(
+            Y[p, r] * W[p, g] * Roles[p][r][1] * 2 for p in P for r in R for g in G
+        )
+        + quicksum(
+            Y[p, r] * W[p, g] * Roles[p][r][2] * 5 for p in P for r in R for g in G
+        )
         - quicksum(
-            Y[p, r] * (1 - Roles[p][r][1] - Roles[p][r][2]) * 2 for p in P for r in R
+            Y[p, r] * W[p, g] * (1 - Roles[p][r][1] - Roles[p][r][2]) * 2
+            for p in P
+            for r in R
+            for g in G
         )
     )
-    * len(Games)
-    + quicksum(X[p] * WP[math.floor(p / 5)] * 6 for p in P) * len(Games)
-    - quicksum(X[p] * (1 - WP[math.floor(p / 5)]) * 3 for p in P) * len(Games),
+    + quicksum(X[p] * W[p, g] * WP[math.floor(p / 5)] * 6 for p in P for g in G)
+    - quicksum(X[p] * W[p, g] * (1 - WP[math.floor(p / 5)]) * 3 for p in P for g in G),
     GRB.MAXIMIZE,
 )
 
@@ -133,6 +157,12 @@ for r in R:
 # Can't select Sonic as his role stats aren't filled in
 m.addConstr(X[27] == 0)
 
+for p in P:
+    for g in G:
+        if g == 0:
+            m.addConstr(W[p, 0] == 1)
+        else:
+            m.addConstr(W[p, g] == math.pow(WP[math.floor(p / 5)], g + 1))
 
 m.optimize()
 

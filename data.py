@@ -1,5 +1,7 @@
 import random
 
+Teams = ["Vitality", "Faze", "G2", "Heroic", "Astralis", "Complexity", "C9", "Imperial"]
+
 Players = [
     ("apEX", "Vitality"),
     ("dupreeh", "Vitality"),
