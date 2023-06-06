@@ -15,8 +15,7 @@ from data import Players, Boosters, Roles, Games, WP, Rating, Price
 # R1_p - Player Rating (HLTV 2.0) over last 1m (for p in P)
 # T_p - Player's Team (P_t elem of T) (for p in P)
 # P_p - Player's Price (for p in P)
-# R6W - Weighting of 6m rating
-# R3W - Weighting of 3m rating
+# RAT - Weighting of all time rating
 # R1W - Weighting of 1m rating
 # R_p - Role trigger % (big / small) (for p in P)
 # B_p - Booster trigger % (big / small) (for p in P)
@@ -44,7 +43,7 @@ from data import Players, Boosters, Roles, Games, WP, Rating, Price
 # * Each player can only have 1 role
 
 # Play around with these
-R6W = 0.2
+RAT = 0.2
 R1W = 0.8
 
 # Set sizes
@@ -62,7 +61,7 @@ Z = {(p, b, g): m.addVar(vtype=GRB.BINARY) for p in P for b in B for g in G}
 
 # Objective Function
 m.setObjective(
-    quicksum(X[p] * (((R1W * Rating[p][0]) + (R6W * Rating[p][1])) - 1) * 50 for p in P)
+    quicksum(X[p] * (((R1W * Rating[p][0]) + (RAT * Rating[p][1])) - 1) * 50 for p in P)
     * len(Games)
     + quicksum(Z[p, b, g] * Boosters[p][b][1] * 5 for p in P for g in G for b in B)
     + (
