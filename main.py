@@ -45,8 +45,8 @@ from data import Players, Boosters, Roles, Games, WP, Rating, Price
 players = []
 
 # Play around with these
-RAT = 0.2
-R1W = 0.8
+RAT = float(1/4)
+R1W = float(3/4)
 
 # Set sizes
 P = range(len(Players))
@@ -159,8 +159,8 @@ m.addConstr(X[27] == 0)
 
 for p in P:
     for g in G:
-        if g == 0:
-            m.addConstr(W[p, 0] == 1)
+        if g == 0 or g == 1:
+            m.addConstr(W[p, g] == 1)
         else:
             m.addConstr(W[p, g] == math.pow(WP[math.floor(p / 5)], g + 1))
 
